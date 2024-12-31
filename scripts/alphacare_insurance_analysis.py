@@ -46,6 +46,8 @@ from scipy.stats import chi2_contingency, ttest_ind
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from xgboost import XGBRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 import shap
 
 import os
@@ -245,3 +247,189 @@ def ab_hypothesis_testing(data, group_column, target_column, min_sample_size=30)
         'P-value': p_value,
         'Reject Null Hypothesis': reject_null
     }
+# Task 4: Statistical Modeling
+
+
+def handle_missing_data(data, strategy="mean", columns=None):
+    """
+    Handle missing data by imputing or removing missing values.
+
+    Args:
+        data (pd.DataFrame): The dataset.
+        strategy (str): The imputation strategy ('mean', 'median', 'mode', or 'drop').
+        columns (list): List of columns to apply the imputation to. If None, applies to all columns.
+
+    Returns:
+        pd.DataFrame: Data with missing values handled.
+    """
+    if columns is None:
+        columns = data.columns
+
+    if strategy == "mean":
+        data[columns] = data[columns].fillna(data[columns].mean())
+    elif strategy == "median":
+        data[columns] = data[columns].fillna(data[columns].median())
+    elif strategy == "mode":
+        data[columns] = data[columns].fillna(data[columns].mode().iloc[0])
+    elif strategy == "drop":
+        data = data.dropna(subset=columns)
+
+    print("Missing data handled using strategy:", strategy)
+    return data
+
+
+def encode_categorical_data(data, categorical_columns):
+    """
+    Perform one-hot encoding for categorical columns.
+
+    Args:
+        data (pd.DataFrame): The dataset.
+        categorical_columns (list): List of categorical column names.
+
+    Returns:
+        pd.DataFrame: Data with categorical features encoded.
+    """
+    data_encoded = pd.get_dummies(data, columns=categorical_columns, drop_first=True)
+    print("Categorical data encoded.")
+    return data_encoded
+
+
+def split_data(data, target_column, test_size=0.3):
+    """
+    Split the dataset into training and testing sets.
+
+    Args:
+        data (pd.DataFrame): The dataset.
+        target_column (str): The target column name.
+        test_size (float): The proportion of data to be used for testing.
+
+    Returns:
+        X_train, X_test, y_train, y_test: The split data.
+    """
+    X = data.drop(target_column, axis=1)
+    y = data[target_column]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=42
+    )
+    print(
+        f"Data split into {1 - test_size:.0%} training and {test_size:.0%} testing sets."
+    )
+    return X_train, X_test, y_train, y_test
+
+
+def train_linear_regression(X_train, y_train):
+    """
+    Train a Linear Regression model.
+
+    Args:
+        X_train (pd.DataFrame): Training data features.
+        y_train (pd.Series): Training data target.
+
+    Returns:
+        model (LinearRegression): Trained model.
+    """
+
+
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    print("Linear Regression model trained.")
+    return model
+
+
+def train_random_forest(X_train, y_train):
+    """
+    Train a Random Forest model.
+
+    Args:
+        X_train (pd.DataFrame): Training data features.
+        y_train (pd.Series): Training data target.
+
+    Returns:
+        model (RandomForestRegressor): Trained model.
+    """
+
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    print("Random Forest model trained.")
+    return model
+
+
+def train_xgboost(X_train, y_train):
+    """
+    Train an XGBoost model.
+
+    Args:
+        X_train (pd.DataFrame): Training data features.
+        y_train (pd.Series): Training data target.
+
+    Returns:
+        model (XGBRegressor): Trained model.
+    """
+    model = XGBRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    print("XGBoost model trained.")
+    return model
+
+
+def evaluate_model(model, X_test, y_test):
+    """
+    Evaluate a trained model on test data using Mean Squared Error (MSE).
+
+    Args:
+        model: The trained model.
+        X_test (pd.DataFrame): Test data features.
+        y_test (pd.Series): Test data target.
+
+    Returns:
+        float: Mean Squared Error of the model.
+    """
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    print(f"Model evaluation complete. Mean Squared Error: {mse:.4f}")
+    return mse
+
+
+def feature_importance_analysis(model, X_train):
+    """
+    Analyze the feature importance using the trained model.
+
+    Args:
+        model: The trained model.
+        X_train (pd.DataFrame): Training data features.
+
+    Returns:
+        pd.Series: Feature importance scores.
+    """
+    if hasattr(model, "feature_importances_"):
+        feature_importance = model.feature_importances_
+    else:
+        print("Model does not support feature importance analysis.")
+        return None
+
+    feature_names = X_train.columns
+    importance_df = pd.DataFrame(
+        {"Feature": feature_names, "Importance": feature_importance}
+    ).sort_values(by="Importance", ascending=False)
+
+    print("Feature importance analysis complete.")
+    return importance_df
+
+
+def interpret_model_predictions(model, X_train):
+    """
+    Interpret the model's predictions using SHAP (SHapley Additive exPlanations).
+
+    Args:
+        model: The trained model.
+        X_train (pd.DataFrame): Training data features.
+
+    Returns:
+        shap_values: SHAP values for the model's predictions.
+    """
+    explainer = shap.Explainer(model, X_train)
+    shap_values = explainer(X_train)
+
+    shap.summary_plot(shap_values, X_train, plot_type="bar")
+    print("Model interpretability complete using SHAP.")
+    return shap_values
