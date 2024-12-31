@@ -39,7 +39,15 @@
 #     plt.show()
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy import stats
 import seaborn as sns
+import numpy as np
+from scipy.stats import chi2_contingency, ttest_ind
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+from xgboost import XGBRegressor
+import shap
+
 import os
 
 def load_data(file_path):
@@ -182,3 +190,58 @@ def plot_boxplot_for_outliers(data, columns, output_dir):
         plt.tight_layout()
         plt.savefig(f'{output_dir}/boxplot_{column}.png')
         plt.show()
+
+# # Task 3: A/B Hypothesis Testing
+# def ab_hypothesis_testing(data, group_col, test_col):
+#     """
+#     Perform A/B Hypothesis Testing.
+    
+#     Parameters:
+#     - data: DataFrame containing the data.
+#     - group_col: Column name indicating group (A/B).
+#     - test_col: Column name of the metric being tested.
+#     """
+#     # Separate groups
+#     group_a = data[data[group_col] == 'A'][test_col]
+#     group_b = data[data[group_col] == 'B'][test_col]
+    
+#     # Perform t-test for numerical data
+#     t_stat, p_value = ttest_ind(group_a, group_b)
+#     print(f"T-statistic: {t_stat}, p-value: {p_value}")
+#     return t_stat, p_value
+
+# Assuming the previous parts of the function are unchanged
+def ab_hypothesis_testing(data, group_column, target_column, min_sample_size=30):
+    # Group the data by the specified column
+    groups = data.groupby(group_column)
+    
+    # Ensure both groups have enough samples
+    group_keys = list(groups.groups.keys())  # Convert dict_keys to list
+    if len(group_keys) < 2:
+        return {'Error': 'Not enough groups to perform the test.'}
+    
+    group_a = groups.get_group(group_keys[0])
+    group_b = groups.get_group(group_keys[1])
+    
+    # Ensure the groups meet the minimum sample size
+    if len(group_a) < min_sample_size or len(group_b) < min_sample_size:
+        return {'Error': 'One or both groups have insufficient sample size.'}
+    
+    # Perform the t-test for the two groups
+    from scipy.stats import ttest_ind
+    t_stat, p_value = ttest_ind(group_a[target_column], group_b[target_column])
+    
+    # Calculate means for each group
+    group_a_mean = group_a[target_column].mean()
+    group_b_mean = group_b[target_column].mean()
+    
+    # Check if the p-value is less than 0.05 to reject the null hypothesis
+    reject_null = p_value < 0.05
+    
+    return {
+        'Group A Mean': group_a_mean,
+        'Group B Mean': group_b_mean,
+        'T-statistic': t_stat,
+        'P-value': p_value,
+        'Reject Null Hypothesis': reject_null
+    }
