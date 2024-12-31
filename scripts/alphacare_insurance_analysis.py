@@ -262,17 +262,46 @@ def handle_missing_data(data, strategy="mean", columns=None):
     Returns:
         pd.DataFrame: Data with missing values handled.
     """
+    if not isinstance(data, pd.DataFrame):
+        raise ValueError("Input data must be a pandas DataFrame.")
+
+    if strategy not in ["mean", "median", "mode", "drop"]:
+        raise ValueError(
+            "Invalid strategy. Must be one of ['mean', 'median', 'mode', 'drop']."
+        )
+
     if columns is None:
         columns = data.columns
 
+    # Ensure the specified columns exist in the DataFrame
+    if not all(col in data.columns for col in columns):
+        raise ValueError("Some columns specified are not in the DataFrame.")
+
+    # Separate numeric and non-numeric columns
+    numeric_columns = data[columns].select_dtypes(include=["number"]).columns
+    non_numeric_columns = [col for col in columns if col not in numeric_columns]
+
+    # Handle numeric columns based on the strategy
     if strategy == "mean":
-        data[columns] = data[columns].fillna(data[columns].mean())
+        data[numeric_columns] = data[numeric_columns].fillna(
+            data[numeric_columns].mean()
+        )
     elif strategy == "median":
-        data[columns] = data[columns].fillna(data[columns].median())
+        data[numeric_columns] = data[numeric_columns].fillna(
+            data[numeric_columns].median()
+        )
     elif strategy == "mode":
-        data[columns] = data[columns].fillna(data[columns].mode().iloc[0])
+        data[numeric_columns] = data[numeric_columns].fillna(
+            data[numeric_columns].mode().iloc[0]
+        )
     elif strategy == "drop":
         data = data.dropna(subset=columns)
+
+    # Handle non-numeric columns (for example, fill with mode or drop rows)
+    if strategy == "mode":
+        data[non_numeric_columns] = data[non_numeric_columns].fillna(
+            data[non_numeric_columns].mode().iloc[0]
+        )
 
     print("Missing data handled using strategy:", strategy)
     return data
@@ -318,6 +347,122 @@ def split_data(data, target_column, test_size=0.3):
     return X_train, X_test, y_train, y_test
 
 
+# def train_linear_regression(X_train, y_train):
+#     """
+#     Train a Linear Regression model.
+
+#     Args:
+#         X_train (pd.DataFrame): Training data features.
+#         y_train (pd.Series): Training data target.
+
+#     Returns:
+#         model (LinearRegression): Trained model.
+#     """
+
+
+#     model = LinearRegression()
+#     model.fit(X_train, y_train)
+#     print("Linear Regression model trained.")
+#     return model
+
+
+# def train_random_forest(X_train, y_train):
+#     """
+#     Train a Random Forest model.
+
+#     Args:
+#         X_train (pd.DataFrame): Training data features.
+#         y_train (pd.Series): Training data target.
+
+#     Returns:
+#         model (RandomForestRegressor): Trained model.
+#     """
+
+#     model = RandomForestRegressor(n_estimators=100, random_state=42)
+#     model.fit(X_train, y_train)
+#     print("Random Forest model trained.")
+#     return model
+
+
+# def train_xgboost(X_train, y_train):
+#     """
+#     Train an XGBoost model.
+
+#     Args:
+#         X_train (pd.DataFrame): Training data features.
+#         y_train (pd.Series): Training data target.
+
+#     Returns:
+#         model (XGBRegressor): Trained model.
+#     """
+#     model = XGBRegressor(n_estimators=100, random_state=42)
+#     model.fit(X_train, y_train)
+#     print("XGBoost model trained.")
+#     return model
+
+
+# def evaluate_model(model, X_test, y_test):
+#     """
+#     Evaluate a trained model on test data using Mean Squared Error (MSE).
+
+#     Args:
+#         model: The trained model.
+#         X_test (pd.DataFrame): Test data features.
+#         y_test (pd.Series): Test data target.
+
+#     Returns:
+#         float: Mean Squared Error of the model.
+#     """
+#     y_pred = model.predict(X_test)
+#     mse = mean_squared_error(y_test, y_pred)
+#     print(f"Model evaluation complete. Mean Squared Error: {mse:.4f}")
+#     return mse
+
+
+# def feature_importance_analysis(model, X_train):
+#     """
+#     Analyze the feature importance using the trained model.
+
+#     Args:
+#         model: The trained model.
+#         X_train (pd.DataFrame): Training data features.
+
+#     Returns:
+#         pd.Series: Feature importance scores.
+#     """
+#     if hasattr(model, "feature_importances_"):
+#         feature_importance = model.feature_importances_
+#     else:
+#         print("Model does not support feature importance analysis.")
+#         return None
+
+#     feature_names = X_train.columns
+#     importance_df = pd.DataFrame(
+#         {"Feature": feature_names, "Importance": feature_importance}
+#     ).sort_values(by="Importance", ascending=False)
+
+#     print("Feature importance analysis complete.")
+#     return importance_df
+
+
+# def interpret_model_predictions(model, X_train):
+#     """
+#     Interpret the model's predictions using SHAP (SHapley Additive exPlanations).
+
+#     Args:
+#         model: The trained model.
+#         X_train (pd.DataFrame): Training data features.
+
+#     Returns:
+#         shap_values: SHAP values for the model's predictions.
+#     """
+#     explainer = shap.Explainer(model, X_train)
+#     shap_values = explainer(X_train)
+
+#     shap.summary_plot(shap_values, X_train, plot_type="bar")
+#     print("Model interpretability complete using SHAP.")
+#     return shap_values
+
 def train_linear_regression(X_train, y_train):
     """
     Train a Linear Regression model.
@@ -329,8 +474,6 @@ def train_linear_regression(X_train, y_train):
     Returns:
         model (LinearRegression): Trained model.
     """
-
-
     model = LinearRegression()
     model.fit(X_train, y_train)
     print("Linear Regression model trained.")
@@ -348,7 +491,6 @@ def train_random_forest(X_train, y_train):
     Returns:
         model (RandomForestRegressor): Trained model.
     """
-
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
     print("Random Forest model trained.")
