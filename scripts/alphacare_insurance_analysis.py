@@ -109,3 +109,76 @@ def plot_categorical_distributions(data, columns, output_dir):
         plt.tight_layout()
         plt.savefig(f'{output_dir}/bar_chart_{column}.png')
         plt.show()
+        
+def plot_correlation_matrix(data, columns, output_dir):
+    """
+    Plot the correlation matrix for a set of columns.
+    
+    Args:
+        data (pd.DataFrame): The dataset.
+        columns (list): List of numerical columns to include in the correlation matrix.
+        output_dir (str): Directory to save the plot.
+    """
+    correlation = data[columns].corr()
+    plt.figure(figsize=(10, 7))
+    sns.heatmap(correlation, annot=True, cmap='coolwarm', linewidths=0.5)
+    plt.title('Correlation Matrix')
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/correlation_matrix.png')
+    plt.show()
+
+# Function to plot scatter plot for TotalPremium vs TotalClaims by Zipcode
+def plot_scatter_by_zipcode(data, output_dir):
+    """
+    Plot a scatter plot of TotalPremium vs TotalClaims, colored by Zipcode.
+    
+    Args:
+        data (pd.DataFrame): The dataset.
+        output_dir (str): Directory to save the plot.
+    """
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(data=data, x='Total_Claim', y='Premium', hue='Zipcode', palette='viridis', alpha=0.7)
+    plt.title('Scatter Plot: TotalPremium vs TotalClaims by Zipcode')
+    plt.xlabel('Total Claims')
+    plt.ylabel('Premium')
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/scatter_totalpremium_vs_totalclaims.png')
+    plt.show()
+
+# Function to plot trends over geography
+def plot_trends_over_geography(data, output_dir):
+    """
+    Plot trends in insurance coverage, premium, or auto make by Province.
+    
+    Args:
+        data (pd.DataFrame): The dataset.
+        output_dir (str): Directory to save the plot.
+    """
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='Province', y='Premium', data=data, palette='Set2')
+    plt.title('Premium Distribution by Province')
+    plt.xlabel('Province')
+    plt.ylabel('Premium')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(f'{output_dir}/premium_by_province.png')
+    plt.show()
+
+# Function to plot box plot for outlier detection
+def plot_boxplot_for_outliers(data, columns, output_dir):
+    """
+    Plot box plots to detect outliers in numerical columns.
+    
+    Args:
+        data (pd.DataFrame): The dataset.
+        columns (list): List of numerical column names.
+        output_dir (str): Directory to save the plots.
+    """
+    for column in columns:
+        plt.figure(figsize=(8, 5))
+        sns.boxplot(data[column], color='lightblue')
+        plt.title(f'Box Plot of {column}')
+        plt.ylabel(column)
+        plt.tight_layout()
+        plt.savefig(f'{output_dir}/boxplot_{column}.png')
+        plt.show()
